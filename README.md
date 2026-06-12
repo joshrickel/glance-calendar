@@ -1,37 +1,55 @@
+<img src="docs/icon.png" width="96" alt="Glance icon" align="left" />
+
 # Glance
 
-Tiny native macOS menu bar agenda — replaces Notion Calendar for the glance job only.
+**A tiny native macOS menu bar agenda.** Today and tomorrow across all your calendars, a live countdown to your next meeting, and a one-click Join button. Nothing else.
 
-**The job:** glance at today/tomorrow across multiple Google calendars, next-event countdown in the menu bar, one-click join for meetings. Nothing else — no event creation, no OAuth, no network code, no Electron. All calendar data arrives locally via EventKit from accounts in System Settings → Internet Accounts.
+<br clear="left" />
 
-## Build & run
+## Why
+
+Calendar apps keep growing features; the thing you actually do fifty times a day is *glance* — what's next, when, where's the link. Glance does only that job:
+
+- **Menu bar countdown** — `Steve · 1:1 in 25m`, updating live. During a meeting it shows `· now`, after your last event it says `Done for today`.
+- **One-click Join** — finds the Meet / Zoom / Teams / Webex link in the event and opens it.
+- **Today + tomorrow agenda** — every calendar on your Mac, color-coded, past events dimmed and struck through.
+- **Calendar toggles** — hide noisy calendars behind a collapsible row of chips; same-named calendars across accounts merge into one toggle, and duplicate events on shared calendars are deduped.
+
+## What it deliberately doesn't do
+
+No event creation or editing. No week/month grids. No notifications (macOS and your meeting tools already do that). No OAuth, no Google API, **no network code at all** — every calendar in System Settings → Internet Accounts arrives locally via EventKit. No Electron, no dependencies, no dock icon. Three Swift files.
+
+## Requirements
+
+- Apple Silicon Mac, macOS 14+
+- Xcode Command Line Tools (`xcode-select --install`)
+- Your calendar accounts added in **System Settings → Internet Accounts** with Calendars enabled (if they show in Apple Calendar, they'll show in Glance)
+
+## Install
 
 ```sh
-./build.sh --run
+git clone https://github.com/joshrickel/glance-calendar.git
+cd glance-calendar
+./build.sh --install
 ```
 
-Requires Xcode command line tools (swiftc). Produces `build/Glance.app`, ad-hoc signed with App Sandbox + Calendars entitlements. Grant **Full Access** when the calendar permission prompt appears.
+This builds `Glance.app`, copies it to /Applications, launches it, and registers it as a login item. Grant **Full Access** when the calendar permission prompt appears. Building locally means no Gatekeeper warnings.
 
-Note: each rebuild re-signs with a new ad-hoc signature, so macOS may re-prompt for calendar access after rebuilding. Granting again is expected.
+To build without installing: `./build.sh --run`.
 
-## Files
+> **Note:** builds are ad-hoc signed, so macOS may re-prompt for calendar access after a rebuild. Granting again is expected.
+
+## How it works
 
 | File | Purpose |
 |------|---------|
-| `Glance/GlanceApp.swift` | `@main`, `MenuBarExtra` with live countdown label |
-| `Glance/EventStore.swift` | EventKit wrapper: auth, today+tomorrow fetch, change observer, join-URL detection |
-| `Glance/AgendaView.swift` | Dropdown UI: header, calendar chips, hero card, event lists, footer |
-| `Glance/Info.plist` | `LSUIElement` (no dock icon), calendar usage description |
-| `Glance/Glance.entitlements` | App Sandbox + calendars |
+| [`Glance/GlanceApp.swift`](Glance/GlanceApp.swift) | `@main`, SwiftUI `MenuBarExtra` with the live countdown label |
+| [`Glance/EventStore.swift`](Glance/EventStore.swift) | EventKit wrapper — auth, today+tomorrow fetch, change observer, join-URL detection, dedupe |
+| [`Glance/AgendaView.swift`](Glance/AgendaView.swift) | The dropdown — header, calendar chips, hero next-event card, event lists |
+| [`scripts/make-icon.swift`](scripts/make-icon.swift) | Draws the app icon programmatically with AppKit |
 
-## Behavior
+External calendar changes (phone, web, anything) arrive via `.EKEventStoreChanged` — no polling, no restart. Calendar visibility persists in `UserDefaults`. The countdown recomputes every 30 seconds.
 
-- Menu bar: `<next event> in 25m` → `<event> · now` during → `Done for today` after; refreshes every 30s
-- Calendar chips toggle visibility, persisted in `UserDefaults` (`hiddenCalendarIDs`)
-- Hero card shows the current/next timed event with a Join button when a Meet/Zoom/Teams/Webex URL is found in the event URL, location, or notes
-- Past events dim to 45% with strikethrough; all-day events show "all day"
-- External changes (Claude/n8n/phone) arrive via `.EKEventStoreChanged` — no restart needed
+## License
 
-## Login at startup (v0.1: manual)
-
-System Settings → General → Login Items → add `build/Glance.app`. (`SMAppService` checkbox is a v0.2 candidate.)
+MIT — see [LICENSE](LICENSE).
