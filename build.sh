@@ -18,6 +18,8 @@ swiftc -O -swift-version 5 -parse-as-library \
 
 cp Glance/Info.plist "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
+mkdir -p "$APP/Contents/Resources"
+cp Glance/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --sign - --entitlements Glance/Glance.entitlements "$APP"
 
