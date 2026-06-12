@@ -133,12 +133,25 @@ final class EventStore: ObservableObject {
 
         lastSynced = Date()
         now = Date()
+        fetchedDay = startOfToday
+        ticksSinceRefresh = 0
         updateTitle()
     }
 
+    private var fetchedDay: Date?
+    private var ticksSinceRefresh = 0
+
     private func tick() {
         now = Date()
-        updateTitle()
+        ticksSinceRefresh += 1
+        // Notifications cover real-time changes; refetch on day rollover (so
+        // "today" is right at 7am even if nothing changed overnight) and every
+        // 5 minutes as a safety net. EventKit fetches are local and cheap.
+        if fetchedDay != Calendar.current.startOfDay(for: now) || ticksSinceRefresh >= 10 {
+            refresh()
+        } else {
+            updateTitle()
+        }
     }
 
     // MARK: - Menu bar title
