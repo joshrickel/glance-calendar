@@ -4,6 +4,7 @@ import SwiftUI
 
 struct AgendaView: View {
     @ObservedObject var store: EventStore
+    @State private var agendaHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -18,12 +19,21 @@ struct AgendaView: View {
                         }
                     }
                 }
+                // MenuBarExtra windows size to the content's *ideal* height, and a
+                // ScrollView's ideal height is ~0 — so measure the agenda and size
+                // the ScrollView to it explicitly, capped at 460pt.
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         agenda
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        proxy.size.height
+                    } action: { height in
+                        agendaHeight = height
+                    }
                 }
-                .frame(maxHeight: 460)
+                .frame(height: min(max(agendaHeight, 24), 460))
                 footer
             } else {
                 accessPrompt
