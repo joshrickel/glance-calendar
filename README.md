@@ -19,6 +19,8 @@ Calendar apps keep growing features; the thing you actually do fifty times a day
 
 No event creation or editing. No week/month grids. No notifications (macOS and your meeting tools already do that). No OAuth, no Google API, **no network code at all** — every calendar in System Settings → Internet Accounts arrives locally via EventKit. No Electron, no dependencies, no dock icon. Three Swift files.
 
+The footer reads *"✦ Scheduling? Ask Claude"* — that's a static label, not an integration. It reflects the author's workflow (scheduling is delegated to an AI assistant, so this app never needs a create-event UI). Change the string in `AgendaView.swift` if it's not your workflow.
+
 ## Requirements
 
 - Apple Silicon Mac, macOS 14+
