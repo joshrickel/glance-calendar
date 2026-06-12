@@ -54,20 +54,56 @@ final class EventStore: ObservableObject {
 
     // MARK: - Visibility
 
-    func isHidden(_ calendar: EKCalendar) -> Bool {
-        hiddenCalendarIDs.contains(calendar.calendarIdentifier)
+    /// Same-named calendars across accounts (Family ×3, Holidays ×2…) act as one unit.
+    struct CalendarGroup: Identifiable {
+        let title: String
+        let calendars: [EKCalendar]
+        var id: String { title }
     }
 
-    func toggle(_ calendar: EKCalendar) {
-        if hiddenCalendarIDs.contains(calendar.calendarIdentifier) {
-            hiddenCalendarIDs.remove(calendar.calendarIdentifier)
+    var calendarGroups: [CalendarGroup] {
+        Dictionary(grouping: calendars) { $0.title.trimmingCharacters(in: .whitespaces) }
+            .map { CalendarGroup(title: $0.key, calendars: $0.value) }
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    func isHidden(_ group: CalendarGroup) -> Bool {
+        group.calendars.allSatisfy { hiddenCalendarIDs.contains($0.calendarIdentifier) }
+    }
+
+    func toggle(_ group: CalendarGroup) {
+        if isHidden(group) {
+            for calendar in group.calendars { hiddenCalendarIDs.remove(calendar.calendarIdentifier) }
         } else {
-            hiddenCalendarIDs.insert(calendar.calendarIdentifier)
+            for calendar in group.calendars { hiddenCalendarIDs.insert(calendar.calendarIdentifier) }
         }
     }
 
-    var todayEvents: [EKEvent] { allTodayEvents.filter { !hiddenCalendarIDs.contains($0.calendar.calendarIdentifier) } }
-    var tomorrowEvents: [EKEvent] { allTomorrowEvents.filter { !hiddenCalendarIDs.contains($0.calendar.calendarIdentifier) } }
+    var hiddenGroupCount: Int {
+        calendarGroups.filter(isHidden).count
+    }
+
+    var todayEvents: [EKEvent] { visibleDeduped(allTodayEvents) }
+    var tomorrowEvents: [EKEvent] { visibleDeduped(allTomorrowEvents) }
+
+    /// Visible events with cross-calendar duplicates removed — the same event often
+    /// lives on several shared calendars (e.g. Family on both Josh's and Natalie's).
+    private func visibleDeduped(_ events: [EKEvent]) -> [EKEvent] {
+        var seen = Set<String>()
+        return events
+            .filter { !hiddenCalendarIDs.contains($0.calendar.calendarIdentifier) }
+            .filter { seen.insert(Self.dedupeKey($0)).inserted }
+    }
+
+    static func dedupeKey(_ event: EKEvent) -> String {
+        "\(event.title ?? "")|\(event.startDate.timeIntervalSince1970)|\(event.endDate.timeIntervalSince1970)"
+    }
+
+    /// Total today count after dedupe, ignoring visibility — for the "N of M" header.
+    var allTodayDedupedCount: Int {
+        var seen = Set<String>()
+        return allTodayEvents.filter { seen.insert(Self.dedupeKey($0)).inserted }.count
+    }
 
     /// The current or next timed event today — drives the hero card.
     var heroEvent: EKEvent? {

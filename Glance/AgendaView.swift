@@ -5,19 +5,14 @@ import SwiftUI
 struct AgendaView: View {
     @ObservedObject var store: EventStore
     @State private var agendaHeight: CGFloat = 0
+    @AppStorage("calendarsExpanded") private var calendarsExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if store.authStatus == .fullAccess {
                 header
                 if !store.calendars.isEmpty {
-                    FlowLayout(spacing: 6) {
-                        ForEach(store.calendars, id: \.calendarIdentifier) { calendar in
-                            CalendarChip(calendar: calendar, isOn: !store.isHidden(calendar)) {
-                                store.toggle(calendar)
-                            }
-                        }
-                    }
+                    calendarBar
                 }
                 // MenuBarExtra windows size to the content's *ideal* height, and a
                 // ScrollView's ideal height is ~0 — so measure the agenda and size
@@ -58,13 +53,44 @@ struct AgendaView: View {
 
     private var headerSummary: String {
         let visible = store.todayEvents.count
-        let total = store.allTodayEvents.count
-        let hidden = store.calendars.filter(store.isHidden).count
-        var summary = visible == total ? "\(total) events" : "\(visible) of \(total) events"
-        if hidden > 0 {
-            summary += " · \(hidden) calendar\(hidden == 1 ? "" : "s") hidden"
+        let total = store.allTodayDedupedCount
+        return visible == total ? "\(total) events" : "\(visible) of \(total) events"
+    }
+
+    // MARK: - Calendar bar
+
+    private var calendarBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                withAnimation(.easeOut(duration: 0.15)) { calendarsExpanded.toggle() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .semibold))
+                        .rotationEffect(calendarsExpanded ? .degrees(90) : .zero)
+                    Text("Calendars")
+                        .font(.system(size: 11, weight: .medium))
+                    if store.hiddenGroupCount > 0 {
+                        Text("· \(store.hiddenGroupCount) hidden")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if calendarsExpanded {
+                FlowLayout(spacing: 6) {
+                    ForEach(store.calendarGroups) { group in
+                        CalendarChip(group: group, isOn: !store.isHidden(group)) {
+                            store.toggle(group)
+                        }
+                    }
+                }
+            }
         }
-        return summary
     }
 
     // MARK: - Agenda body
@@ -151,23 +177,24 @@ struct AgendaView: View {
 // MARK: - Calendar chip
 
 private struct CalendarChip: View {
-    let calendar: EKCalendar
+    let group: EventStore.CalendarGroup
     let isOn: Bool
     let action: () -> Void
 
     var body: some View {
+        let color = calendarColor(group.calendars.first)
         Button(action: action) {
-            Text(calendar.title)
+            Text(group.title)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(isOn ? calendarColor(calendar) : Color.secondary)
+                .foregroundStyle(isOn ? color : Color.secondary)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3.5)
                 .background(
-                    Capsule().fill(isOn ? calendarColor(calendar).opacity(0.12) : Color.gray.opacity(0.12))
+                    Capsule().fill(isOn ? color.opacity(0.12) : Color.gray.opacity(0.12))
                 )
         }
         .buttonStyle(.plain)
-        .help(isOn ? "Hide \(calendar.title)" : "Show \(calendar.title)")
+        .help(isOn ? "Hide \(group.title)" : "Show \(group.title)")
     }
 }
 
