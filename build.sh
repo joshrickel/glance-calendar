@@ -21,7 +21,16 @@ printf 'APPL????' > "$APP/Contents/PkgInfo"
 mkdir -p "$APP/Contents/Resources"
 cp Glance/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-codesign --force --sign - --entitlements Glance/Glance.entitlements "$APP"
+# Prefer a stable self-signed identity so calendar permission survives rebuilds
+# (see scripts/setup-signing.sh). Fall back to ad-hoc if it isn't set up.
+IDENTITY="Glance Local Signing"
+if security find-identity -p codesigning 2>/dev/null | grep -q "$IDENTITY"; then
+    SIGN_ID="$IDENTITY"
+else
+    SIGN_ID="-"
+    echo "note: signing ad-hoc — run ./scripts/setup-signing.sh once so calendar access persists across rebuilds"
+fi
+codesign --force --sign "$SIGN_ID" --entitlements Glance/Glance.entitlements "$APP"
 
 echo "Built $APP"
 

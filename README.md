@@ -32,6 +32,7 @@ The footer reads *"✦ Scheduling? Ask Claude"* — that's a static label, not a
 ```sh
 git clone https://github.com/joshrickel/glance-calendar.git
 cd glance-calendar
+./scripts/setup-signing.sh   # one-time: stable signing so calendar access persists
 ./build.sh --install
 ```
 
@@ -39,7 +40,11 @@ This builds `Glance.app`, copies it to /Applications, launches it, and registers
 
 To build without installing: `./build.sh --run`.
 
-> **Note:** builds are ad-hoc signed, so macOS may re-prompt for calendar access after a rebuild. Granting again is expected.
+### Signing & calendar permission
+
+macOS ties calendar (TCC) permission to an app's code-signing identity. Ad-hoc signing (`codesign -s -`) produces a **new** identity on every build, so each rebuild looks like a different app and silently drops the permission. [`scripts/setup-signing.sh`](scripts/setup-signing.sh) creates a fixed, self-signed identity (`Glance Local Signing`) in your login keychain, so you grant calendar access **once** and it survives all future rebuilds. It requires OpenSSL 3 (`brew install openssl@3`) and is idempotent — run it once.
+
+If you skip it, the build falls back to ad-hoc signing and macOS may re-prompt for calendar access after each rebuild. The certificate is self-signed and shows as untrusted — that's expected and fine for local use.
 
 ## How it works
 

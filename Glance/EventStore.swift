@@ -5,7 +5,7 @@ import Foundation
 
 @MainActor
 final class EventStore: ObservableObject {
-    private let ek = EKEventStore()
+    private var ek = EKEventStore()
     private var cancellables = Set<AnyCancellable>()
     private static let hiddenKey = "hiddenCalendarIDs"
 
@@ -27,7 +27,9 @@ final class EventStore: ObservableObject {
     init() {
         hiddenCalendarIDs = Set(UserDefaults.standard.stringArray(forKey: Self.hiddenKey) ?? [])
 
-        NotificationCenter.default.publisher(for: .EKEventStoreChanged, object: ek)
+        // object: nil (not the ek instance) so the observer keeps firing even
+        // after requestAccess() recreates the store.
+        NotificationCenter.default.publisher(for: .EKEventStoreChanged)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
@@ -43,6 +45,10 @@ final class EventStore: ObservableObject {
     // MARK: - Access
 
     func requestAccess() async {
+        // Recreate the store so a permission change made in System Settings while
+        // the app is running is actually picked up — the old instance can cache
+        // the earlier (denied) decision.
+        ek = EKEventStore()
         do {
             _ = try await ek.requestFullAccessToEvents()
         } catch {
@@ -143,6 +149,15 @@ final class EventStore: ObservableObject {
 
     private func tick() {
         now = Date()
+
+        // Self-heal: if access was granted in System Settings while running,
+        // macOS doesn't notify us — re-request so the agenda appears without a
+        // manual restart. (No prompt: once TCC has a decision this returns it.)
+        if authStatus != .fullAccess {
+            Task { await requestAccess() }
+            return
+        }
+
         ticksSinceRefresh += 1
         // Notifications cover real-time changes; refetch on day rollover (so
         // "today" is right at 7am even if nothing changed overnight) and every
