@@ -50,12 +50,12 @@ If you skip it, the build falls back to ad-hoc signing and macOS may re-prompt f
 
 | File | Purpose |
 |------|---------|
-| [`Glance/GlanceApp.swift`](Glance/GlanceApp.swift) | `@main`, SwiftUI `MenuBarExtra` with the live countdown label |
+| [`Glance/GlanceApp.swift`](Glance/GlanceApp.swift) | `@main` app delegate — owns the `NSStatusItem` (live countdown label) and the `NSPopover` that hosts the agenda |
 | [`Glance/EventStore.swift`](Glance/EventStore.swift) | EventKit wrapper — auth, today+tomorrow fetch, change observer, join-URL detection, dedupe |
 | [`Glance/AgendaView.swift`](Glance/AgendaView.swift) | The dropdown — header, calendar chips, hero next-event card, event lists |
 | [`scripts/make-icon.swift`](scripts/make-icon.swift) | Draws the app icon programmatically with AppKit |
 
-External calendar changes (phone, web, anything) arrive via `.EKEventStoreChanged` — no polling, no restart. Calendar visibility persists in `UserDefaults`. The countdown recomputes every 30 seconds.
+The menu bar item is a classic AppKit `NSStatusItem` rather than SwiftUI's `MenuBarExtra`, which drops its icon on display reconfiguration (docking, monitor connect/disconnect, sleep/wake). External calendar changes (phone, web, anything) arrive via `.EKEventStoreChanged` — no polling, no restart. Calendar visibility persists in `UserDefaults`. The countdown recomputes every 30 seconds.
 
 ## License
 

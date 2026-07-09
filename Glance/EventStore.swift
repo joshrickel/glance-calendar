@@ -92,13 +92,19 @@ final class EventStore: ObservableObject {
     var todayEvents: [EKEvent] { visibleDeduped(allTodayEvents) }
     var tomorrowEvents: [EKEvent] { visibleDeduped(allTomorrowEvents) }
 
-    /// Visible events with cross-calendar duplicates removed — the same event often
-    /// lives on several shared calendars (e.g. Family on both Josh's and Natalie's).
+    /// Visible events, cross-calendar duplicates removed, ordered for display:
+    /// all-day events first, then timed events chronologically. (Sorting purely by
+    /// startDate interleaves all-day events among timed ones — worse across time
+    /// zones, where an all-day event's midnight can land mid-afternoon.)
     private func visibleDeduped(_ events: [EKEvent]) -> [EKEvent] {
         var seen = Set<String>()
         return events
             .filter { !hiddenCalendarIDs.contains($0.calendar.calendarIdentifier) }
             .filter { seen.insert(Self.dedupeKey($0)).inserted }
+            .sorted { a, b in
+                if a.isAllDay != b.isAllDay { return a.isAllDay }
+                return a.startDate < b.startDate
+            }
     }
 
     static func dedupeKey(_ event: EKEvent) -> String {
