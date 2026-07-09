@@ -57,6 +57,10 @@ If you skip it, the build falls back to ad-hoc signing and macOS may re-prompt f
 
 The menu bar item is a classic AppKit `NSStatusItem` rather than SwiftUI's `MenuBarExtra`, which drops its icon on display reconfiguration (docking, monitor connect/disconnect, sleep/wake). External calendar changes (phone, web, anything) arrive via `.EKEventStoreChanged` — no polling, no restart. Calendar visibility persists in `UserDefaults`. The countdown recomputes every 30 seconds.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
