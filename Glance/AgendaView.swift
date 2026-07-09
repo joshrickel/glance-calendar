@@ -4,38 +4,36 @@ import SwiftUI
 
 struct AgendaView: View {
     @ObservedObject var store: EventStore
-    @State private var agendaHeight: CGFloat = 0
     @AppStorage("calendarsExpanded") private var calendarsExpanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if store.authStatus == .fullAccess {
+        if store.authStatus == .fullAccess {
+            // Fixed popover size: header and footer stay pinned, only the agenda
+            // list scrolls between them. This keeps the "Today" header and hero
+            // card always visible at the top no matter how packed the day is.
+            VStack(alignment: .leading, spacing: 12) {
                 header
                 if !store.calendars.isEmpty {
                     calendarBar
                 }
-                // MenuBarExtra windows size to the content's *ideal* height, and a
-                // ScrollView's ideal height is ~0 — so measure the agenda and size
-                // the ScrollView to it explicitly, capped at 460pt.
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         agenda
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .onGeometryChange(for: CGFloat.self) { proxy in
-                        proxy.size.height
-                    } action: { height in
-                        agendaHeight = height
-                    }
                 }
-                .frame(height: min(max(agendaHeight, 24), 460))
+                .frame(maxHeight: .infinity)
                 footer
-            } else {
+            }
+            .padding(14)
+            .frame(width: 380, height: 520)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
                 accessPrompt
             }
+            .padding(14)
+            .frame(width: 380, height: 170, alignment: .topLeading)
         }
-        .padding(14)
-        .frame(width: 380)
     }
 
     // MARK: - Header
