@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import ServiceManagement
 import SwiftUI
 
 // Classic AppKit NSStatusItem instead of SwiftUI's MenuBarExtra. MenuBarExtra's
@@ -46,6 +47,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.statusItem.button?.title = self?.title(value) ?? value
             }
             .store(in: &cancellables)
+
+        registerLoginItemIfNeeded()
+    }
+
+    /// Register as a login item via the modern SMAppService API. This creates a
+    /// properly managed launch-at-login entry that starts reliably at boot —
+    /// unlike a legacy AppleScript login item, which macOS can leave unapproved
+    /// and silently skip for a self-signed sandboxed app. Only self-registers
+    /// from /Applications so `--run` builds don't register a throwaway path.
+    private func registerLoginItemIfNeeded() {
+        guard Bundle.main.bundlePath.hasPrefix("/Applications/") else { return }
+        let service = SMAppService.mainApp
+        guard service.status != .enabled else { return }
+        do {
+            try service.register()
+        } catch {
+            NSLog("Glance: login item registration failed: \(error)")
+        }
     }
 
     private func title(_ value: String) -> String { " " + value }

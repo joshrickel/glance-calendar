@@ -4,6 +4,14 @@ All notable changes to Glance are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); the project is pre-1.0 and
 versioned informally.
 
+## [Unreleased]
+
+### Fixed
+- **No menu bar icon after a restart.** The app now registers itself as a login
+  item via `SMAppService` instead of a legacy AppleScript login item, which macOS
+  could leave unapproved and skip at boot for a self-signed sandboxed app. The
+  installer removes the old AppleScript item.
+
 ## [0.2.0] — 2026-07-08
 
 Reliability pass — making Glance survive real-world daily use (traveling,

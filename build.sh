@@ -42,12 +42,9 @@ if [[ "${1:-}" == "--install" ]]; then
     pkill -x Glance 2>/dev/null || true
     rm -rf /Applications/Glance.app
     cp -R "$APP" /Applications/Glance.app
+    # Remove any legacy AppleScript login item; the app now registers itself as a
+    # login item via SMAppService on launch (reliable at boot, unlike the old one).
+    osascript -e 'tell application "System Events" to if exists login item "Glance" then delete login item "Glance"' 2>/dev/null || true
     open /Applications/Glance.app
-    # Idempotent login item registration
-    osascript -e 'tell application "System Events"
-        if not (exists login item "Glance") then
-            make login item at end with properties {path:"/Applications/Glance.app", hidden:false}
-        end if
-    end tell'
-    echo "Installed /Applications/Glance.app and registered login item"
+    echo "Installed /Applications/Glance.app (self-registers as a login item on launch)"
 fi
